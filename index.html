@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>3D Print Cost Calculator</title>
+  <style>
+    :root{--ink:#18212b;--muted:#667085;--line:#d9e1e8;--brand:#0f766e;--soft:#ecfdf5;--bg:#f4f7f8;--danger:#b42318}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+    .wrap{max-width:1100px;margin:auto;padding:32px 20px 60px}.hero{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:24px}
+    h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.03em}h2{font-size:19px;margin:0 0 16px}p{margin:0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}.card{background:white;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 3px 14px #1018280a}
+    .drop{border:2px dashed #9fb9b5;border-radius:14px;padding:26px;text-align:center;background:#f7fffd;cursor:pointer;transition:.2s}.drop:hover,.drop.over{border-color:var(--brand);background:var(--soft)}
+    .drop strong{display:block;font-size:17px}.drop small{color:var(--muted)}input[type=file]{display:none}.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+    label{display:block;font-size:13px;font-weight:700;color:#344054}.input{display:flex;align-items:center;border:1px solid #cfd8df;border-radius:10px;background:white;margin-top:6px;overflow:hidden}.input span{padding:10px;color:var(--muted);background:#f8fafb}.input input{width:100%;border:0;padding:10px;font:inherit;outline:none}.wide{grid-column:1/-1}
+    .results{background:#102a2a;color:white;border:0}.results p{color:#b7d1ce}.total{font-size:42px;font-weight:800;letter-spacing:-.04em;margin:14px 0 18px}.row{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid #ffffff1c}.row:last-of-type{border:0}.row span:first-child{color:#c3d5d3}.row strong{text-align:right}
+    button{border:0;border-radius:10px;padding:11px 15px;font-weight:750;cursor:pointer;font-size:14px}.primary{background:var(--brand);color:white}.secondary{background:white;color:var(--ink);border:1px solid var(--line)}.actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}.results .secondary{border:0}
+    .status{margin-top:12px;font-size:13px;color:var(--muted)}.parsed{margin-top:16px;padding:14px;background:#f8fafb;border-radius:12px;display:none}.parsed.show{display:block}.parsed-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.metric small{display:block;color:var(--muted)}.metric strong{font-size:16px}.help{font-size:13px;margin-top:14px}.note{margin-top:20px;font-size:12px;color:var(--muted)}.section-label{grid-column:1/-1;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand);font-weight:800;margin-top:8px;padding-top:12px;border-top:1px solid var(--line)}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}.hero{display:block}.fields{grid-template-columns:1fr}.wide{grid-column:auto}.parsed-grid{grid-template-columns:1fr 1fr}.hero .secondary{margin-top:14px}}
+    @media print{body{background:white}.wrap{padding:0;max-width:none}.hero .secondary,.drop,.actions,.help{display:none!important}.grid{grid-template-columns:1fr 1fr}.card{box-shadow:none}.results{-webkit-print-color-adjust:exact;print-color-adjust:exact}.fields{grid-template-columns:1fr 1fr}.input{border:0}.input input{padding-left:0}.input span{background:white;padding-left:0}.status{display:none}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero"><div><h1>3D Print Cost Calculator</h1><p>Drop in a G-code file, add your costs, and get a clear price.</p></div><button class="secondary" id="reset">Start over</button></header>
+  <div class="grid">
+    <section class="card">
+      <h2>1. Add your print file</h2>
+      <label class="drop" id="drop" for="file"><strong>Choose or drop a G-code file here</strong><small>.gcode, .gco, or .txt • your file stays on this device</small></label>
+      <input id="file" type="file" accept=".gcode,.gco,.txt,text/plain">
+      <div class="status" id="status">No file selected. You can also enter the values by hand below.</div>
+      <div class="parsed" id="parsed"><div class="parsed-grid"><div class="metric"><small>File</small><strong id="fileName">—</strong></div><div class="metric"><small>Filament found</small><strong id="foundWeight">—</strong></div><div class="metric"><small>Print time found</small><strong id="foundTime">—</strong></div></div></div>
+
+      <h2 style="margin-top:24px">2. Enter your costs</h2>
+      <div class="fields">
+        <label>Filament used<div class="input"><input id="grams" type="number" min="0" step="0.1" value="0"><span>grams</span></div></label>
+        <label>Spool price<div class="input"><span>$</span><input id="spoolPrice" type="number" min="0" step="0.01" value="20.00"></div></label>
+        <label>Spool size<div class="input"><input id="spoolGrams" type="number" min="1" step="1" value="1000"><span>grams</span></div></label>
+        <label>Print time<div class="input"><input id="hours" type="number" min="0" step="0.01" value="0"><span>hours</span></div></label>
+        <label>Electricity rate<div class="input"><span>$</span><input id="electricRate" type="number" min="0" step="0.001" value="0.16"><span>/ kWh</span></div></label>
+        <label>Printer power<div class="input"><input id="watts" type="number" min="0" step="1" value="120"><span>watts</span></div></label>
+        <div class="section-label">Time and shop costs</div>
+        <label>Printer purchase price<div class="input"><span>$</span><input id="printerPrice" type="number" min="0" step="1" value="500"></div></label>
+        <label>Printer life<div class="input"><input id="printerLife" type="number" min="1" step="100" value="3000"><span>hours</span></div></label>
+        <label>Maintenance & wear<div class="input"><span>$</span><input id="maintenance" type="number" min="0" step="0.01" value="0.15"><span>/ print hour</span></div></label>
+        <label>Business overhead<div class="input"><span>$</span><input id="overheadRate" type="number" min="0" step="0.01" value="0"><span>/ print hour</span></div></label>
+        <label>Design / modeling time<div class="input"><input id="designHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Print preparation time<div class="input"><input id="prepHours" type="number" min="0" step="0.25" value="0.25"><span>hours</span></div></label>
+        <label>Slicing time<div class="input"><input id="sliceHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Post-processing time<div class="input"><input id="postHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Quoting / admin time<div class="input"><input id="adminHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Labor rate<div class="input"><span>$</span><input id="laborRate" type="number" min="0" step="0.01" value="20.00"><span>/ hour</span></div></label>
+        <div class="section-label">Order and selling costs</div>
+        <label>Quantity<div class="input"><input id="quantity" type="number" min="1" step="1" value="1"><span>pieces</span></div></label>
+        <label>Packaging<div class="input"><span>$</span><input id="packaging" type="number" min="0" step="0.01" value="0"><span>/ piece</span></div></label>
+        <label>Shipping you pay<div class="input"><span>$</span><input id="shipping" type="number" min="0" step="0.01" value="0"></div></label>
+        <label>Payment / marketplace fee<div class="input"><input id="platformFee" type="number" min="0" step="0.1" value="0"><span>% of sale</span></div></label>
+        <label>Payment flat fee<div class="input"><span>$</span><input id="flatFee" type="number" min="0" step="0.01" value="0"></div></label>
+        <label>Minimum order charge<div class="input"><span>$</span><input id="minimumCharge" type="number" min="0" step="1" value="0"></div></label>
+        <label>Other costs<div class="input"><span>$</span><input id="other" type="number" min="0" step="0.01" value="0"></div></label>
+        <label>Failed-print allowance<div class="input"><input id="failure" type="number" min="0" step="1" value="10"><span>%</span></div></label>
+        <label>Profit markup<div class="input"><input id="markup" type="number" min="0" step="1" value="30"><span>%</span></div></label>
+        <label class="wide">Job / customer name<div class="input"><input id="jobName" type="text" placeholder="Example: Gear housing – Jordan"></div></label>
+      </div>
+      <p class="help">Tip: a half-kilogram spool is 500 grams. Printer purchase price and life estimate calculate depreciation automatically. Overhead can cover rent, software, insurance, and utilities. Quantity assumes the print, material, post-processing, and packaging values are for one piece; design and admin time are counted once. Fees are applied after the quote is calculated.</p>
+    </section>
+
+    <aside class="card results">
+      <h2>Suggested customer price</h2><p id="jobLabel">Current print</p><div class="total" id="total">$0.00</div>
+      <div class="row"><span>Filament</span><strong id="rFilament">$0.00</strong></div>
+      <div class="row"><span>Electricity</span><strong id="rElectric">$0.00</strong></div>
+      <div class="row"><span>Printer depreciation</span><strong id="rDepreciation">$0.00</strong></div>
+      <div class="row"><span>Maintenance & wear</span><strong id="rMaintenance">$0.00</strong></div>
+      <div class="row"><span>Shop overhead</span><strong id="rOverhead">$0.00</strong></div>
+      <div class="row"><span>Total project time</span><strong id="rTotalHours">0.00 hours</strong></div>
+      <div class="row"><span>Design / modeling</span><strong id="rDesign">$0.00</strong></div>
+      <div class="row"><span>Print preparation</span><strong id="rPrep">$0.00</strong></div>
+      <div class="row"><span>Slicing</span><strong id="rSlice">$0.00</strong></div>
+      <div class="row"><span>Post-processing</span><strong id="rPost">$0.00</strong></div>
+      <div class="row"><span>Quoting / admin</span><strong id="rAdmin">$0.00</strong></div>
+      <div class="row"><span>Total labor</span><strong id="rLabor">$0.00</strong></div>
+      <div class="row"><span>Packaging</span><strong id="rPackaging">$0.00</strong></div>
+      <div class="row"><span>Shipping</span><strong id="rShipping">$0.00</strong></div>
+      <div class="row"><span>Other costs</span><strong id="rOther">$0.00</strong></div>
+      <div class="row"><span>Base cost</span><strong id="rBase">$0.00</strong></div>
+      <div class="row"><span>Failed-print allowance</span><strong id="rFailure">$0.00</strong></div>
+      <div class="row"><span>Profit</span><strong id="rProfit">$0.00</strong></div>
+      <div class="row"><span>Payment / marketplace fee</span><strong id="rPlatform">$0.00</strong></div>
+      <div class="actions"><button class="secondary" id="print">Print / Save PDF</button><button class="secondary" id="save">Save settings</button></div>
+      <p class="note">Estimate only. G-code details vary by slicer, so confirm the detected weight and time before quoting.</p>
+    </aside>
+  </div>
+</main>
+<script>
+const ids=['grams','spoolPrice','spoolGrams','hours','electricRate','watts','printerPrice','printerLife','maintenance','overheadRate','designHours','prepHours','sliceHours','postHours','adminHours','laborRate','quantity','packaging','shipping','platformFee','flatFee','minimumCharge','other','failure','markup','jobName'];
+const $=id=>document.getElementById(id), money=n=>'$'+(Number.isFinite(n)?n:0).toFixed(2), num=id=>Math.max(0,parseFloat($(id).value)||0);
+function calc(){
+  const q=Math.max(1,Math.round(num('quantity'))), filament=num('grams')/Math.max(1,num('spoolGrams'))*num('spoolPrice')*q;
+  const printHours=num('hours')*q, electric=printHours*num('watts')/1000*num('electricRate');
+  const depreciation=printHours*num('printerPrice')/Math.max(1,num('printerLife')), maintenance=printHours*num('maintenance'), overhead=printHours*num('overheadRate');
+  const rate=num('laborRate'), design=num('designHours')*rate, prep=num('prepHours')*rate, slice=num('sliceHours')*rate, post=num('postHours')*rate*q, admin=num('adminHours')*rate;
+  const labor=design+prep+slice+post+admin, laborHours=num('designHours')+num('prepHours')+num('sliceHours')+num('postHours')*q+num('adminHours'), packaging=num('packaging')*q, shipping=num('shipping'), other=num('other');
+  const base=filament+electric+depreciation+maintenance+overhead+labor+packaging+shipping+other, fail=base*num('failure')/100, profit=(base+fail)*num('markup')/100, preFee=base+fail+profit, platform=preFee*num('platformFee')/100+num('flatFee'), total=Math.max(num('minimumCharge'),preFee+platform);
+  $('rFilament').textContent=money(filament);$('rElectric').textContent=money(electric);$('rDepreciation').textContent=money(depreciation);$('rMaintenance').textContent=money(maintenance);$('rOverhead').textContent=money(overhead);
+  $('rTotalHours').textContent=(printHours+laborHours).toFixed(2)+' hours';$('rDesign').textContent=money(design);$('rPrep').textContent=money(prep);$('rSlice').textContent=money(slice);$('rPost').textContent=money(post);$('rAdmin').textContent=money(admin);$('rLabor').textContent=money(labor);
+  $('rPackaging').textContent=money(packaging);$('rShipping').textContent=money(shipping);$('rOther').textContent=money(other);$('rBase').textContent=money(base);$('rFailure').textContent=money(fail);$('rProfit').textContent=money(profit);$('rPlatform').textContent=money(platform);$('total').textContent=money(total);$('jobLabel').textContent=$('jobName').value.trim()||'Current print';
+}
+ids.forEach(id=>$(id).addEventListener('input',calc));
+function parseGcode(text){
+  let grams=null, seconds=null, m;
+  const weightPatterns=[/filament used \[g\]\s*=\s*([\d.]+)/i,/filament weight(?: \[g\])?\s*[:=]\s*([\d.]+)/i,/filament used.*?([\d.]+)\s*g(?:\s|$)/i,/total filament used.*?([\d.]+)\s*g/i];
+  for(const p of weightPatterns)if((m=text.match(p))){grams=parseFloat(m[1]);break}
+  if((m=text.match(/^;\s*TIME\s*:\s*(\d+)/mi))) seconds=parseInt(m[1]);
+  if(seconds===null&&(m=text.match(/estimated printing time.*?=\s*(?:(\d+)d\s*)?(?:(\d+)h\s*)?(?:(\d+)m\s*)?(?:(\d+)s)?/i))) seconds=(+m[1]||0)*86400+(+m[2]||0)*3600+(+m[3]||0)*60+(+m[4]||0);
+  if(seconds===null&&(m=text.match(/;\s*PRINT_TIME\s*:\s*([\d.]+)/i))) seconds=parseFloat(m[1]);
+  return {grams,seconds};
+}
+async function loadFile(file){
+  if(!file)return;$('status').textContent='Reading file…';
+  try{const text=await file.text(),r=parseGcode(text);if(r.grams!==null)$('grams').value=r.grams.toFixed(2);if(r.seconds!==null)$('hours').value=(r.seconds/3600).toFixed(2);
+    $('fileName').textContent=file.name;$('foundWeight').textContent=r.grams===null?'Not found':r.grams.toFixed(1)+' g';$('foundTime').textContent=r.seconds===null?'Not found':(r.seconds/3600).toFixed(2)+' hr';$('parsed').classList.add('show');
+    $('status').textContent=(r.grams===null||r.seconds===null)?'Some details were not found. Please enter or check them below.':'File read successfully. Please check the values below.';calc();
+  }catch(e){$('status').textContent='This file could not be read. Please enter the values by hand.'}
+}
+$('file').addEventListener('change',e=>loadFile(e.target.files[0]));const drop=$('drop');['dragenter','dragover'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.add('over')}));['dragleave','drop'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.remove('over')}));drop.addEventListener('drop',e=>loadFile(e.dataTransfer.files[0]));
+$('print').onclick=()=>window.print();$('save').onclick=()=>{localStorage.setItem('printCostSettings',JSON.stringify(Object.fromEntries(ids.filter(x=>x!=='jobName').map(x=>[x,$(x).value]))));$('save').textContent='Saved!';setTimeout(()=>$('save').textContent='Save settings',1400)};
+$('reset').onclick=()=>{if(confirm('Clear this job and return to the starting values?')){localStorage.removeItem('printCostSettings');location.reload()}};
+try{const saved=JSON.parse(localStorage.getItem('printCostSettings'));if(saved)Object.entries(saved).forEach(([k,v])=>{if($(k))$(k).value=v})}catch(e){}calc();
+</script>
+</body>
+</html>
