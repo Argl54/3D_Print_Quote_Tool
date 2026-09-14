@@ -1,0 +1,187 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>3D Print Cost Calculator</title>
+  <style>
+    :root{--ink:#18212b;--muted:#667085;--line:#d9e1e8;--brand:#0f766e;--soft:#ecfdf5;--bg:#f4f7f8;--danger:#b42318}
+    *{box-sizing:border-box}body{margin:0;font-family:Inter,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.45}
+    .wrap{max-width:1100px;margin:auto;padding:32px 20px 60px}.hero{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:24px}
+    h1{font-size:clamp(28px,4vw,42px);margin:0 0 6px;letter-spacing:-.03em}h2{font-size:19px;margin:0 0 16px}p{margin:0;color:var(--muted)}
+    .grid{display:grid;grid-template-columns:1.15fr .85fr;gap:20px}.card{background:white;border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 3px 14px #1018280a}
+    .drop{border:2px dashed #9fb9b5;border-radius:14px;padding:26px;text-align:center;background:#f7fffd;cursor:pointer;transition:.2s}.drop:hover,.drop.over{border-color:var(--brand);background:var(--soft)}
+    .drop strong{display:block;font-size:17px}.drop small{color:var(--muted)}input[type=file]{display:none}.fields{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px}
+    label{display:block;font-size:13px;font-weight:700;color:#344054}.input{display:flex;align-items:center;border:1px solid #cfd8df;border-radius:10px;background:white;margin-top:6px;overflow:hidden}.input span{padding:10px;color:var(--muted);background:#f8fafb}.input input{width:100%;border:0;padding:10px;font:inherit;outline:none}.wide{grid-column:1/-1}
+    .results{background:#102a2a;color:white;border:0}.results p{color:#b7d1ce}.total{font-size:42px;font-weight:800;letter-spacing:-.04em;margin:14px 0 18px}.row{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid #ffffff1c}.row:last-of-type{border:0}.row span:first-child{color:#c3d5d3}.row strong{text-align:right}
+    button{border:0;border-radius:10px;padding:11px 15px;font-weight:750;cursor:pointer;font-size:14px}.primary{background:var(--brand);color:white}.secondary{background:white;color:var(--ink);border:1px solid var(--line)}.actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}.results .secondary{border:0}
+    .status{margin-top:12px;font-size:13px;color:var(--muted)}.parsed{margin-top:16px;padding:14px;background:#f8fafb;border-radius:12px;display:none}.parsed.show{display:block}.parsed-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px}.parsed-head strong{font-size:13px}.clear-files{padding:7px 10px;font-size:12px}.parsed-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.metric small{display:block;color:var(--muted)}.metric strong{font-size:16px}.file-list{display:grid;gap:10px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}.file-item{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}.file-item-info{min-width:0;flex:1}.file-item-name{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.file-item-detail{display:block;color:var(--muted);white-space:nowrap}.file-item-detail.warn{color:var(--danger)}.file-quantity{display:flex;align-items:center;gap:8px}.file-quantity-label{font-size:12px;font-weight:700;color:#344054;white-space:nowrap}.file-quantity .quantity-control{margin-top:0;min-width:150px}.quote-details{margin:18px 0 24px}.quantity-control{display:flex;align-items:center;border:1px solid #cfd8df;border-radius:10px;background:white;margin-top:6px;overflow:hidden}.quantity-control input{width:100%;min-width:0;border:0;padding:10px;font:inherit;outline:none;text-align:center}.quantity-control span{padding:10px;color:var(--muted);background:#f8fafb;white-space:nowrap}.stepper{width:40px;height:42px;padding:0;border-radius:0;background:#f8fafb;color:var(--ink);font-size:20px;line-height:1}.stepper:hover{background:var(--soft)}.help{font-size:13px;margin-top:14px}.note{margin-top:20px;font-size:12px;color:var(--muted)}.section-label{grid-column:1/-1;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--brand);font-weight:800;margin-top:8px;padding-top:12px;border-top:1px solid var(--line)}
+    @media(max-width:760px){.grid{grid-template-columns:1fr}.hero{display:block}.fields{grid-template-columns:1fr}.wide{grid-column:auto}.parsed-grid{grid-template-columns:1fr 1fr}.file-item{display:block}.file-item-detail{margin-top:2px}.file-quantity{margin-top:8px}.quote-details{grid-template-columns:1fr}.hero .secondary{margin-top:14px}}
+    .quote-preview{max-width:700px;margin:32px auto 0}.quote-preview>h2{margin-bottom:12px}.customer-quote{background:white;color:var(--ink);border:1px solid var(--line);border-top:5px solid var(--brand);padding:clamp(20px,5vw,42px);overflow-wrap:anywhere}.quote-header{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:start}.quote-header h2{font-size:28px;letter-spacing:-.03em;color:var(--brand);margin:0}.quote-muted{font-size:13px;color:var(--muted)}.quote-customer{margin:30px 0}.quote-customer strong{display:block;font-size:18px}.quote-description{padding:20px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}.quote-description p{margin-top:6px;color:var(--ink);white-space:pre-wrap}.quote-summary{margin:18px 0 0}.quote-summary>div{display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:11px 0;border-bottom:1px solid #e8edf0;font-size:15px;break-inside:avoid}.quote-summary dt{color:#475467}.quote-summary dd{margin:0;font-weight:600;font-variant-numeric:tabular-nums}.quote-time-note{margin-top:10px;font-size:12px;max-width:440px}.quote-price{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--soft);color:#102a2a;padding:20px;margin:28px 0;break-inside:avoid}.quote-price strong{font-size:34px;letter-spacing:-.03em}.quote-details label+label{margin-top:14px}
+    @page{margin:16mm}
+    .quote-preview{display:none}
+    @media print{body{background:white}.wrap{padding:0;max-width:none}.hero,.grid{display:none!important}.quote-preview{display:block;max-width:none;margin:0}.customer-quote{padding:28px;border-left:0;border-right:0;border-bottom:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}.quote-header,.quote-customer,.quote-description{break-inside:avoid}}
+  </style>
+</head>
+<body>
+<main class="wrap">
+  <header class="hero"><div><h1>3D Print Cost Calculator</h1><p>Drop in one or more G-code files, add your costs, and get a clear price.</p></div><button class="secondary" id="reset">Start over</button></header>
+  <div class="grid">
+    <section class="card">
+      <h2>1. Add your print files</h2>
+      <label class="drop" id="drop" for="file"><strong>Choose or drop G-code files here</strong><small>Select several files at once, or add more later • .gcode, .gco, or .txt • your files stay on this device</small></label>
+      <input id="file" type="file" multiple accept=".gcode,.gco,.txt,text/plain">
+      <div class="status" id="status">No files selected. You can also enter the values by hand below.</div>
+      <div class="parsed" id="parsed"><div class="parsed-head"><strong>Files included in this quote</strong><button class="secondary clear-files" id="clearFiles" type="button">Clear files</button></div><div class="parsed-grid"><div class="metric"><small>Files</small><strong id="fileCount">0</strong></div><div class="metric"><small>Filament in quote</small><strong id="foundWeight">—</strong></div><div class="metric"><small>Print time in quote</small><strong id="foundTime">—</strong></div><div class="metric"><small>Files needing review</small><strong id="filesMissing">0</strong></div></div><div class="file-list" id="fileList"></div></div>
+
+      <h2 style="margin-top:24px">2. Customize this quote</h2>
+      <div class="quote-details">
+        <label>Customer or project name<div class="input"><input id="jobName" type="text" placeholder="Example: Gear housing – customer name"></div></label>
+        <label>Order description (optional)<div class="input"><input id="orderDescription" type="text" placeholder="Leave blank to describe the uploaded files automatically"></div></label>
+      </div>
+
+      <h2>3. Enter your costs</h2>
+      <div class="fields">
+        <label>Filament used<div class="input"><input id="grams" type="number" min="0" step="0.1" value="0"><span>grams</span></div></label>
+        <label>Spool price<div class="input"><span>$</span><input id="spoolPrice" type="number" min="0" step="0.01" value="20.00"></div></label>
+        <label>Spool size<div class="input"><input id="spoolGrams" type="number" min="1" step="1" value="1000"><span>grams</span></div></label>
+        <label>Print time<div class="input"><input id="hours" type="number" min="0" step="0.01" value="0"><span>hours</span></div></label>
+        <label>Electricity rate<div class="input"><span>$</span><input id="electricRate" type="number" min="0" step="0.001" value="0.16"><span>/ kWh</span></div></label>
+        <label>Printer power<div class="input"><input id="watts" type="number" min="0" step="1" value="120"><span>watts</span></div></label>
+        <div class="section-label">Time and shop costs</div>
+        <label>Printer purchase price<div class="input"><span>$</span><input id="printerPrice" type="number" min="0" step="1" value="500"></div></label>
+        <label>Printer life<div class="input"><input id="printerLife" type="number" min="1" step="100" value="3000"><span>hours</span></div></label>
+        <label>Maintenance & wear<div class="input"><span>$</span><input id="maintenance" type="number" min="0" step="0.01" value="0.15"><span>/ print hour</span></div></label>
+        <label>Business overhead<div class="input"><span>$</span><input id="overheadRate" type="number" min="0" step="0.01" value="0"><span>/ print hour</span></div></label>
+        <label>Design / modeling time<div class="input"><input id="designHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Print preparation time<div class="input"><input id="prepHours" type="number" min="0" step="0.25" value="0.25"><span>hours</span></div></label>
+        <label>Slicing time<div class="input"><input id="sliceHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Post-processing time<div class="input"><input id="postHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Quoting / admin time<div class="input"><input id="adminHours" type="number" min="0" step="0.25" value="0"><span>hours</span></div></label>
+        <label>Labor rate<div class="input"><span>$</span><input id="laborRate" type="number" min="0" step="0.01" value="20.00"><span>/ hour</span></div></label>
+        <div class="section-label">Order and selling costs</div>
+        <label>Packaging<div class="input"><span>$</span><input id="packaging" type="number" min="0" step="0.01" value="0"><span>/ piece</span></div></label>
+        <label>Shipping you pay<div class="input"><span>$</span><input id="shipping" type="number" min="0" step="0.01" value="0"></div></label>
+        <label>Payment / marketplace fee<div class="input"><input id="platformFee" type="number" min="0" step="0.1" value="0"><span>% of sale</span></div></label>
+        <label>Payment flat fee<div class="input"><span>$</span><input id="flatFee" type="number" min="0" step="0.01" value="0"></div></label>
+        <label>Minimum order charge<div class="input"><span>$</span><input id="minimumCharge" type="number" min="0" step="1" value="0"></div></label>
+        <label>Other costs<div class="input"><span>$</span><input id="other" type="number" min="0" step="0.01" value="0"></div></label>
+        <label>Failed-print allowance<div class="input"><input id="failure" type="number" min="0" step="1" value="10"><span>%</span></div></label>
+        <label>Profit markup<div class="input"><input id="markup" type="number" min="0" step="1" value="30"><span>%</span></div></label>
+      </div>
+      <p class="help">Tip: a half-kilogram spool is 500 grams. Printer purchase price and life estimate calculate depreciation automatically. Overhead can cover rent, software, insurance, and utilities. When files are uploaded, use the Runs control beside each file to choose how many times that specific file should run. Design and admin time are counted once, while each file's print, material, post-processing, packaging, and machine costs are multiplied by its own run count. Fees are applied after the quote is calculated.</p>
+    </section>
+
+    <aside class="card results">
+      <h2>Suggested customer price</h2><p id="jobLabel">Current project</p><div class="total" id="total">$0.00</div>
+      <div class="row"><span>Filament</span><strong id="rFilament">$0.00</strong></div>
+      <div class="row"><span>Electricity</span><strong id="rElectric">$0.00</strong></div>
+      <div class="row"><span>Printer depreciation</span><strong id="rDepreciation">$0.00</strong></div>
+      <div class="row"><span>Maintenance & wear</span><strong id="rMaintenance">$0.00</strong></div>
+      <div class="row"><span>Shop overhead</span><strong id="rOverhead">$0.00</strong></div>
+      <div class="row"><span>Total project time</span><strong id="rTotalHours">0.00 hours</strong></div>
+      <div class="row"><span>Design / modeling</span><strong id="rDesign">$0.00</strong></div>
+      <div class="row"><span>Print preparation</span><strong id="rPrep">$0.00</strong></div>
+      <div class="row"><span>Slicing</span><strong id="rSlice">$0.00</strong></div>
+      <div class="row"><span>Post-processing</span><strong id="rPost">$0.00</strong></div>
+      <div class="row"><span>Quoting / admin</span><strong id="rAdmin">$0.00</strong></div>
+      <div class="row"><span>Total labor</span><strong id="rLabor">$0.00</strong></div>
+      <div class="row"><span>Packaging</span><strong id="rPackaging">$0.00</strong></div>
+      <div class="row"><span>Shipping</span><strong id="rShipping">$0.00</strong></div>
+      <div class="row"><span>Other costs</span><strong id="rOther">$0.00</strong></div>
+      <div class="row"><span>Base cost</span><strong id="rBase">$0.00</strong></div>
+      <div class="row"><span>Failed-print allowance</span><strong id="rFailure">$0.00</strong></div>
+      <div class="row"><span>Profit</span><strong id="rProfit">$0.00</strong></div>
+      <div class="row"><span>Payment / marketplace fee</span><strong id="rPlatform">$0.00</strong></div>
+      <div class="actions"><button class="secondary" id="print">Print / Save PDF</button><button class="secondary" id="save">Save settings</button></div>
+      <p class="note">Estimate only. G-code details vary by slicer, so confirm the detected weight and time before quoting.</p>
+    </aside>
+  </div>
+  <section class="quote-preview" aria-label="Printable customer quote">
+    <article class="customer-quote" aria-label="Customer quote">
+      <header class="quote-header"><h2>3D Print Quote</h2><time class="quote-muted" id="quoteDate"></time></header>
+      <div class="quote-customer"><div class="quote-muted">Prepared for</div><strong id="quoteCustomer">Current project</strong></div>
+      <section class="quote-description"><div class="quote-muted">Your order</div><p id="quoteDescription">Custom 3D printing.</p></section>
+      <dl class="quote-summary">
+        <div><dt>Print quantity (runs)</dt><dd id="quoteQuantity">1</dd></div>
+        <div><dt>Total print time</dt><dd id="quotePrintTime">0 minutes</dd></div>
+        <div><dt>Total working time</dt><dd id="quoteWorkingTime">0 minutes</dd></div>
+      </dl>
+      <p class="quote-time-note">Working time includes design, preparation, slicing, finishing, and order handling.</p>
+      <div class="quote-price"><span>Total quoted price</span><strong id="quoteTotal">$0.00</strong></div>
+      <footer class="quote-muted">Thank you for your business.</footer>
+    </article>
+  </section>
+</main>
+<script>
+const ids=['grams','spoolPrice','spoolGrams','hours','electricRate','watts','printerPrice','printerLife','maintenance','overheadRate','designHours','prepHours','sliceHours','postHours','adminHours','laborRate','packaging','shipping','platformFee','flatFee','minimumCharge','other','failure','markup','jobName'];
+const $=id=>document.getElementById(id), money=n=>'$'+(Number.isFinite(n)?n:0).toFixed(2), num=id=>Math.max(0,parseFloat($(id).value)||0);
+let selectedFiles=[];
+function formatDuration(hours){
+  const minutes=Math.max(0,Math.round(hours*60)),h=Math.floor(minutes/60),m=minutes%60;
+  return [h?`${h} hour${h===1?'':'s'}`:'',m||!h?`${m} minute${m===1?'':'s'}`:''].filter(Boolean).join(' ');
+}
+function updateQuote(runCount,printHours,laborHours,total){
+  const now=new Date();$('quoteDate').textContent=now.toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'});
+  $('quoteDate').dateTime=[now.getFullYear(),String(now.getMonth()+1).padStart(2,'0'),String(now.getDate()).padStart(2,'0')].join('-');
+  $('quoteCustomer').textContent=$('jobName').value.trim()||'Current project';
+  $('quoteDescription').textContent=$('orderDescription').value.trim()||(selectedFiles.length?`Custom 3D printing from ${selectedFiles.length} supplied file${selectedFiles.length===1?'':'s'}.`:'Custom 3D printing.');
+  $('quoteQuantity').textContent=runCount;$('quotePrintTime').textContent=formatDuration(printHours);$('quoteWorkingTime').textContent=formatDuration(laborHours);$('quoteTotal').textContent=money(total);
+}
+$('orderDescription').addEventListener('input',calc);
+function calc(){
+  const runCount=selectedFiles.length?selectedFiles.reduce((sum,record)=>sum+record.quantity,0):1;
+  const filament=num('grams')/Math.max(1,num('spoolGrams'))*num('spoolPrice');
+  const printHours=num('hours'), electric=printHours*num('watts')/1000*num('electricRate');
+  const depreciation=printHours*num('printerPrice')/Math.max(1,num('printerLife')), maintenance=printHours*num('maintenance'), overhead=printHours*num('overheadRate');
+  const rate=num('laborRate'), design=num('designHours')*rate, prep=num('prepHours')*rate, slice=num('sliceHours')*rate, post=num('postHours')*rate*runCount, admin=num('adminHours')*rate;
+  const labor=design+prep+slice+post+admin, laborHours=num('designHours')+num('prepHours')+num('sliceHours')+num('postHours')*runCount+num('adminHours'), packaging=num('packaging')*runCount, shipping=num('shipping'), other=num('other');
+  const base=filament+electric+depreciation+maintenance+overhead+labor+packaging+shipping+other, fail=base*num('failure')/100, profit=(base+fail)*num('markup')/100, preFee=base+fail+profit, platform=preFee*num('platformFee')/100+num('flatFee'), total=Math.max(num('minimumCharge'),preFee+platform);
+  $('rFilament').textContent=money(filament);$('rElectric').textContent=money(electric);$('rDepreciation').textContent=money(depreciation);$('rMaintenance').textContent=money(maintenance);$('rOverhead').textContent=money(overhead);
+  $('rTotalHours').textContent=(printHours+laborHours).toFixed(2)+' hours';$('rDesign').textContent=money(design);$('rPrep').textContent=money(prep);$('rSlice').textContent=money(slice);$('rPost').textContent=money(post);$('rAdmin').textContent=money(admin);$('rLabor').textContent=money(labor);
+  $('rPackaging').textContent=money(packaging);$('rShipping').textContent=money(shipping);$('rOther').textContent=money(other);$('rBase').textContent=money(base);$('rFailure').textContent=money(fail);$('rProfit').textContent=money(profit);$('rPlatform').textContent=money(platform);$('total').textContent=money(total);$('jobLabel').textContent=$('jobName').value.trim()||'Current project';
+  updateQuote(runCount,printHours,laborHours,total);
+}
+ids.forEach(id=>$(id).addEventListener('input',calc));
+function parseGcode(text){
+  let grams=null, seconds=null, m;
+  const weightPatterns=[/filament used \[g\]\s*=\s*([\d.]+)/i,/filament weight(?: \[g\])?\s*[:=]\s*([\d.]+)/i,/filament used.*?([\d.]+)\s*g(?:\s|$)/i,/total filament used.*?([\d.]+)\s*g/i];
+  for(const p of weightPatterns)if((m=text.match(p))){grams=parseFloat(m[1]);break}
+  if((m=text.match(/^;\s*TIME\s*:\s*(\d+)/mi))) seconds=parseInt(m[1]);
+  if(seconds===null&&(m=text.match(/estimated printing time.*?=\s*(?:(\d+)d\s*)?(?:(\d+)h\s*)?(?:(\d+)m\s*)?(?:(\d+)s)?/i))) seconds=(+m[1]||0)*86400+(+m[2]||0)*3600+(+m[3]||0)*60+(+m[4]||0);
+  if(seconds===null&&(m=text.match(/;\s*PRINT_TIME\s*:\s*([\d.]+)/i))) seconds=parseFloat(m[1]);
+  return {grams,seconds};
+}
+function fileKey(file){return [file.name,file.size,file.lastModified].join('::')}
+function batchTotals(results){
+  const knownGrams=results.filter(x=>x.result.grams!==null),knownSeconds=results.filter(x=>x.result.seconds!==null),missing=results.filter(x=>x.error||x.result.grams===null||x.result.seconds===null);
+  return {knownGrams,knownSeconds,missing,grams:knownGrams.reduce((sum,x)=>sum+x.result.grams*x.quantity,0),seconds:knownSeconds.reduce((sum,x)=>sum+x.result.seconds*x.quantity,0)};
+}
+function updateBatchTotals(results){
+  const totals=batchTotals(results);if(totals.knownGrams.length)$('grams').value=totals.grams.toFixed(2);if(totals.knownSeconds.length)$('hours').value=(totals.seconds/3600).toFixed(2);
+}
+function renderFiles(results){
+  const totals=batchTotals(results);
+  $('fileCount').textContent=results.length;$('foundWeight').textContent=totals.knownGrams.length?totals.grams.toFixed(1)+' g':'Not found';$('foundTime').textContent=totals.knownSeconds.length?(totals.seconds/3600).toFixed(2)+' hr':'Not found';$('filesMissing').textContent=totals.missing.length;
+  $('fileList').replaceChildren(...results.map(record=>{
+    const row=document.createElement('div'),info=document.createElement('div'),name=document.createElement('strong'),detail=document.createElement('span'),quantity=document.createElement('div'),quantityLabel=document.createElement('span'),control=document.createElement('div'),down=document.createElement('button'),input=document.createElement('input'),up=document.createElement('button'),units=document.createElement('span');
+    row.className='file-item';info.className='file-item-info';name.className='file-item-name';detail.className='file-item-detail';name.textContent=record.file.name;detail.textContent=record.error?'Could not read':`${record.result.grams===null?'weight not found':'weight '+record.result.grams.toFixed(1)+' g'} · ${record.result.seconds===null?'time not found':'time '+(record.result.seconds/3600).toFixed(2)+' hr'}`;if(record.error||record.result.grams===null||record.result.seconds===null)detail.classList.add('warn');info.append(name,detail);
+    quantity.className='file-quantity';quantityLabel.className='file-quantity-label';quantityLabel.textContent='Runs';control.className='quantity-control';down.className='stepper';down.type='button';down.textContent='−';down.setAttribute('aria-label',`Decrease runs for ${record.file.name}`);input.className='file-quantity-input';input.type='number';input.min='1';input.step='1';record.quantity=Math.max(1,Math.round(record.quantity||1));input.value=record.quantity;input.setAttribute('aria-label',`Runs for ${record.file.name}`);up.className='stepper';up.type='button';up.textContent='+';up.setAttribute('aria-label',`Increase runs for ${record.file.name}`);units.textContent='runs';
+    const setQuantity=delta=>{record.quantity=Math.max(1,Math.round(parseFloat(input.value)||1)+delta);input.value=record.quantity;updateBatchTotals(selectedFiles);calc()};down.onclick=()=>setQuantity(-1);up.onclick=()=>setQuantity(1);input.addEventListener('input',()=>{record.quantity=Math.max(1,Math.round(parseFloat(input.value)||1));input.value=record.quantity;updateBatchTotals(selectedFiles);calc()});control.append(down,input,up,units);quantity.append(quantityLabel,control);row.append(info,quantity);return row;
+  }));
+}
+async function loadFiles(fileCollection){
+  const incoming=Array.from(fileCollection||[]);if(!incoming.length)return;
+  selectedFiles=[...selectedFiles,...incoming.filter(file=>!selectedFiles.some(existing=>fileKey(existing.file)===fileKey(file))).map(file=>({file,result:{grams:null,seconds:null},quantity:1}))];$('status').textContent=`Reading ${selectedFiles.length} file${selectedFiles.length===1?'':'s'}…`;
+  const results=await Promise.all(selectedFiles.map(async record=>{try{return {...record,result:parseGcode(await record.file.text())}}catch(e){return {...record,result:{grams:null,seconds:null},error:true}}}));
+  selectedFiles=results;const totals=batchTotals(results);updateBatchTotals(results);renderFiles(results);$('parsed').classList.add('show');$('status').textContent=totals.missing.length?`${selectedFiles.length} files added. Set each file's runs below and review the missing details.`:`${selectedFiles.length} files added. Set each file's runs below to build the quote.`;calc();
+}
+function clearFiles(){selectedFiles=[];$('file').value='';$('grams').value='0';$('hours').value='0';$('parsed').classList.remove('show');$('fileList').replaceChildren();$('status').textContent='No files selected. You can also enter the values by hand below.';calc()}
+$('file').addEventListener('change',e=>{loadFiles(e.target.files);e.target.value=''});const drop=$('drop');['dragenter','dragover'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.add('over')}));['dragleave','drop'].forEach(x=>drop.addEventListener(x,e=>{e.preventDefault();drop.classList.remove('over')}));drop.addEventListener('drop',e=>loadFiles(e.dataTransfer.files));$('clearFiles').onclick=clearFiles;
+$('print').onclick=()=>window.print();$('save').onclick=()=>{localStorage.setItem('printCostSettings',JSON.stringify(Object.fromEntries(ids.filter(x=>x!=='jobName').map(x=>[x,$(x).value]))));$('save').textContent='Saved!';setTimeout(()=>$('save').textContent='Save settings',1400)};
+window.addEventListener('beforeprint',calc);
+$('reset').onclick=()=>{if(confirm('Clear this job and return to the starting values?')){localStorage.removeItem('printCostSettings');location.reload()}};
+try{const saved=JSON.parse(localStorage.getItem('printCostSettings'));if(saved)Object.entries(saved).forEach(([k,v])=>{if($(k))$(k).value=v})}catch(e){}calc();
+</script>
+</body>
+</html>

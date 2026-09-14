@@ -1,0 +1,11 @@
+# Local Codex/workspace metadata
+.agents/
+.codex/
+tmp/
+
+# Unreferenced local preview image
+snapshot.png
+
+# OS/editor files
+.DS_Store
+Thumbs.db
